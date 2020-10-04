@@ -91,7 +91,7 @@ RCT_EXPORT_MODULE();
     [[FIRAuth authWithApp:firebaseApp] removeIDTokenDidChangeListener:[idTokenHandlers valueForKey:key]];
   }
   [idTokenHandlers removeAllObjects];
-  
+
   [credentials removeAllObjects];
 }
 
@@ -897,7 +897,7 @@ RCT_EXPORT_METHOD(setLanguageCode:
     } else {
         [[FIRAuth authWithApp:firebaseApp] useAppLanguage];
     }
-  
+
 }
 
 RCT_EXPORT_METHOD(useDeviceLanguage:
@@ -1201,10 +1201,10 @@ RCT_EXPORT_METHOD(verifyPasswordResetCode:
 
 - (NSDictionary*) authCredentialToDict:(FIRAuthCredential *)authCredential {
   NSString *authCredentialHash = [NSString stringWithFormat:@"%@",  @([authCredential hash])];
-  
+
   // Temporarily store the non-serializable credential for later
   credentials[authCredentialHash] = authCredential;
-  
+
   return @{
     keyProviderId: authCredential.provider,
     @"token": authCredentialHash,

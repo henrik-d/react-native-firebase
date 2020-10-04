@@ -43,6 +43,7 @@ import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseAuthProvider;
 import com.google.firebase.auth.FirebaseAuthSettings;
 import com.google.firebase.auth.FirebaseUser;
@@ -78,6 +79,7 @@ class ReactNativeFirebaseAuthModule extends ReactNativeFirebaseModule {
   private static final String TAG = "Auth";
   private static HashMap<String, FirebaseAuth.AuthStateListener> mAuthListeners = new HashMap<>();
   private static HashMap<String, FirebaseAuth.IdTokenListener> mIdTokenListeners = new HashMap<>();
+  static final HashMap<String, AuthCredential> authCredentials = new HashMap<>();
   private String mVerificationId;
   private String mLastPhoneNumber;
   private PhoneAuthProvider.ForceResendingToken mForceResendingToken;
@@ -126,6 +128,8 @@ class ReactNativeFirebaseAuthModule extends ReactNativeFirebaseModule {
       firebaseAuth.removeIdTokenListener(mAuthListener);
       idTokenListenerIterator.remove();
     }
+
+    authCredentials.clear();
   }
 
   /**
@@ -1387,6 +1391,11 @@ class ReactNativeFirebaseAuthModule extends ReactNativeFirebaseModule {
     String authToken,
     String authSecret
   ) {
+
+    if(authCredentials.get(authToken) != null) {
+      return authCredentials.get(authToken);
+    }
+
     switch (provider) {
       case "facebook.com":
         return FacebookAuthProvider.getCredential(authToken);
@@ -1839,6 +1848,17 @@ class ReactNativeFirebaseAuthModule extends ReactNativeFirebaseModule {
       }
     }
 
+    if (exception instanceof FirebaseAuthUserCollisionException) {
+
+      AuthCredential authCredential =
+        ((FirebaseAuthUserCollisionException) exception).getUpdatedCredential();
+
+      if (authCredential != null) {
+        error.putMap("authCredential", this.authCredentialToMap(authCredential));
+      }
+    }
+
+
     code = code
       .toLowerCase()
       .replace("error_", "")
@@ -1967,6 +1987,20 @@ class ReactNativeFirebaseAuthModule extends ReactNativeFirebaseModule {
     userMap.putMap("metadata", metadataMap);
 
     return userMap;
+  }
+
+  private WritableMap authCredentialToMap(AuthCredential authCredential) {
+
+    WritableMap output = Arguments.createMap();
+
+    final String authCredentialHashCode = String.valueOf(authCredential.hashCode());
+    authCredentials.put(authCredentialHashCode, authCredential);
+
+    output.putString("providerId", authCredential.getProvider());
+    output.putString("token", authCredentialHashCode);
+    output.putNull("secret");
+
+    return output;
   }
 
   private ActionCodeSettings buildActionCodeSettings(ReadableMap actionCodeSettings) {
